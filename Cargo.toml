@@ -1,0 +1,32 @@
+[package]
+name = "luo9_sdk"
+version = "1.0.0"
+authors = ["luoy-oss <2557657882@qq.com>"]
+edition = "2021"
+# rust-version = "1.85.0"
+description = "SDK for developing plugins for Luo9 Bot"
+license = "GPL-3.0"
+repository = "https://github.com/luoy-oss/luo9_sdk"
+homepage = "https://www.drluo.top"
+documentation = "https://www.drluo.top/posts/luo9_sdk"
+readme = "README.md"
+keywords = ["bot", "luo9", "luo9_bot", "sdk", "plugin"]
+categories = ["api-bindings"]
+
+[dependencies]
+async-trait = "0.1"
+serde_yaml = "0.9"
+configparser = "3.1.0"
+chrono = "0.4"
+md-5 = "0.10.6"
+anyhow = "1.0"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+tokio = { version = "1.0", features = ["full"] }
+tracing = "0.1"
+reqwest = { version = "0.12.15", features = ["json"] }
+lazy_static = "1.4"
+ctor = "0.4.1"
+
+[dev-dependencies]
+tokio-test = "0.4"
