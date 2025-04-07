@@ -33,21 +33,18 @@ pub trait Plugin: Send + Sync {
     /// 处理群消息
     async fn handle_group_message(&self, _message: &GroupMessage) -> Result<()> {
         // 默认实现，如果插件不支持此类消息，则直接返回 Ok
-        println!("插件 {} 不支持处理群消息", self.metadata().name);
         Ok(())
     }
     
     /// 处理私聊消息
     async fn handle_private_message(&self, _message: &PrivateMessage) -> Result<()> {
         // 默认实现，如果插件不支持此类消息，则直接返回 Ok
-        println!("插件 {} 不支持处理私聊消息", self.metadata().name);
         Ok(())
     }
     
     /// 处理群戳一戳事件
     async fn handle_group_poke(&self, _target_id: &str, _user_id: &str, _group_id: &str) -> Result<()> {
         // 默认实现，如果插件不支持此类事件，则直接返回 Ok
-        println!("插件 {} 不支持处理群戳一戳事件", self.metadata().name);
         Ok(())
     }
 }
