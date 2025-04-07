@@ -20,26 +20,6 @@ pub struct GroupMessage {
     /// 原始消息数据
     pub raw_data: JsonValue,
 }
-// pub struct GroupMessage {
-//     /// 消息ID
-//     pub message_id: String,
-    
-//     /// 群ID
-//     pub group_id: String,
-    
-//     /// 发送者ID
-//     pub user_id: String,
-    
-//     /// 发送者昵称
-//     pub nickname: String,
-    
-//     /// 消息内容
-//     pub message: String,
-    
-//     /// 原始消息数据
-//     pub raw_data: serde_json::Value,
-// }
-
 /// 私聊消息
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct PrivateMessage {
@@ -52,20 +32,3 @@ pub struct PrivateMessage {
     /// 原始消息数据
     pub raw_data: JsonValue,
 }
-
-// pub struct PrivateMessage {
-//     /// 消息ID
-//     pub message_id: String,
-    
-//     /// 发送者ID
-//     pub user_id: String,
-    
-//     /// 发送者昵称
-//     pub nickname: String,
-    
-//     /// 消息内容
-//     pub message: String,
-    
-//     /// 原始消息数据
-//     pub raw_data: serde_json::Value,
-// }

@@ -2,13 +2,11 @@
 //! 
 //! 这个模块定义了插件需要实现的特性。
 
-use std::sync::Arc;
 use async_trait::async_trait;
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 
 use super::message::{GroupMessage, PrivateMessage};
-use super::config::Value;
 
 /// 插件元数据结构
 #[derive(Debug, Deserialize, Serialize)]
@@ -32,9 +30,6 @@ pub struct PluginMetadata {
 /// 插件特性，定义了插件需要实现的方法
 #[async_trait]
 pub trait Plugin: Send + Sync {
-    /// 获取插件元数据
-    fn metadata(&self) -> &PluginMetadata;
-    
     /// 处理群消息
     async fn handle_group_message(&self, _message: &GroupMessage) -> Result<()> {
         // 默认实现，如果插件不支持此类消息，则直接返回 Ok
