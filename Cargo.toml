@@ -1,6 +1,6 @@
 [package]
 name = "luo9_sdk"
-version = "1.0.2"
+version = "1.0.3"
 authors = ["luoy-oss <2557657882@qq.com>"]
 edition = "2021"
 # rust-version = "1.85.0"
