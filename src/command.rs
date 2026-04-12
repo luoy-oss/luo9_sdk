@@ -5,16 +5,22 @@ pub enum PrefixMode {
 }
 
 pub struct Command {
-    pub raw: String,        // 原始字符串 "/help arg1 arg2"（保留原始格式）
-    pub name: String,       // "help"
-    pub args: Vec<String>,  // ["arg1", "arg2"]
+    pub raw: String,        // 原始字符串 "/echo hello world"（保留原始格式）
+    pub name: String,       // 命令名，如 "echo"
+    pub args: Vec<String>,  // 按空白分割的参数列表
+    pub args_raw: String,   // 去掉命令名后的原始内容（未分割，保留原样包括空格）
     pub prefix: char,       // '/' 或 '\0'（表示无前缀）
 }
 
 impl Command {
-    /// 解析命令，支持多种前缀模式
-    pub fn parse(msg: &str, mode: PrefixMode) -> Option<Self> {
-        // 转换为 String 进行后续处理
+    /// 解析命令，检查是否以指定命令名开头
+    /// 
+    /// # Examples
+    /// ```
+    /// let cmd = Command::parse("/echo hello world", "echo", PrefixMode::Optional('/')).unwrap();
+    /// assert_eq!(cmd.args_raw, " hello world");
+    /// ```
+    pub fn parse(msg: &str, cmd_name: &str, mode: PrefixMode) -> Option<Self> {
         let raw = msg.to_string();
         let trimmed = raw.trim();
         
@@ -22,66 +28,94 @@ impl Command {
             return None;
         }
         
-        match mode {
+        // 1. 根据前缀模式，提取实际内容（去掉前缀）
+        let (content, actual_prefix, prefix_len_in_trimmed) = match mode {
             PrefixMode::Required(p) => {
                 if !trimmed.starts_with(p) {
                     return None;
                 }
-                Self::parse_with_prefix(raw, p)
+                let prefix_len = p.len_utf8();
+                let after_prefix = &trimmed[prefix_len..];
+                (after_prefix.trim_start(), p, prefix_len)
             }
             PrefixMode::Optional(p) => {
                 if trimmed.starts_with(p) {
-                    Self::parse_with_prefix(raw, p)
+                    let prefix_len = p.len_utf8();
+                    let after_prefix = &trimmed[prefix_len..];
+                    (after_prefix.trim_start(), p, prefix_len)
                 } else {
-                    Self::parse_without_prefix(raw)
+                    (trimmed, '\0', 0)
                 }
             }
             PrefixMode::None => {
-                Self::parse_without_prefix(raw)
+                (trimmed, '\0', 0)
             }
-        }
-    }
-    
-    /// 解析带前缀的命令
-    fn parse_with_prefix(raw: String, prefix: char) -> Option<Self> {
-        // 先 trim 处理逻辑，但保留原始 raw
-        let trimmed = raw.trim();
-        let without_prefix = &trimmed[prefix.len_utf8()..];
-        let trimmed_cmd = without_prefix.trim_start();
+        };
         
-        if trimmed_cmd.is_empty() {
+        // 2. 检查是否以命令名开头
+        if !content.starts_with(cmd_name) {
             return None;
         }
         
-        let mut parts = trimmed_cmd.split_whitespace();
-        let name = parts.next()?.to_string();
-        let args: Vec<String> = parts.map(|s| s.to_string()).collect();
+        // 3. 计算在原始 trimmed 字符串中，命令名结束的位置
+        //    需要考虑前缀和命令名前的空格
+        let trimmed_parts: Vec<&str> = trimmed.splitn(2, |c: char| !c.is_whitespace()).collect();
+        if trimmed_parts.is_empty() {
+            return None;
+        }
+        
+        // 找到命令名在原始 raw 中的位置
+        // 更简单的方法：直接在 raw 中查找
+        let raw_trimmed_start = raw.find(trimmed).unwrap_or(0);
+        
+        // 计算前缀在 raw 中的长度
+        let prefix_part_len = if actual_prefix != '\0' {
+            // 在 trimmed 中，前缀在开头，但 raw 中可能有前导空格
+            // 找到 trimmed 在 raw 中的位置，前缀就是从那里开始的
+            let trimmed_start_in_raw = raw.find(trimmed).unwrap_or(0);
+            // 前缀字符在 trimmed 中的位置是 0
+            // 所以在 raw 中，前缀的位置就是 trimmed_start_in_raw
+            // 前缀长度就是实际前缀字符的长度
+            actual_prefix.len_utf8()
+        } else {
+            0
+        };
+        
+        // 命令名在 trimmed 中的起始位置
+        let cmd_start_in_trimmed = content.find(cmd_name).unwrap_or(0);
+        
+        // 命令名在 raw 中的起始位置
+        let cmd_start_in_raw = raw_trimmed_start + prefix_part_len + cmd_start_in_trimmed;
+        
+        // 命令名在 raw 中的结束位置
+        let cmd_end_in_raw = cmd_start_in_raw + cmd_name.len();
+        
+        // 提取命令名后面的所有内容（保留原始格式，包括所有空格）
+        let args_raw = if cmd_end_in_raw < raw.len() {
+            raw[cmd_end_in_raw..].to_string()
+        } else {
+            String::new()
+        };
+        
+        // 分割参数：去掉前导空白后按空白分割
+        let trimmed_args = args_raw.trim_start();
+        let args: Vec<String> = if trimmed_args.is_empty() {
+            Vec::new()
+        } else {
+            trimmed_args.split_whitespace().map(|s| s.to_string()).collect()
+        };
         
         Some(Command {
             raw,
-            name,
+            name: cmd_name.to_string(),
             args,
-            prefix,
+            args_raw,
+            prefix: actual_prefix,
         })
     }
     
-    /// 解析无前缀的命令
-    fn parse_without_prefix(raw: String) -> Option<Self> {
-        let trimmed = raw.trim();
-        let mut parts = trimmed.split_whitespace();
-        let name = parts.next()?.to_string();
-        let args: Vec<String> = parts.map(|s| s.to_string()).collect();
-        
-        Some(Command {
-            raw,
-            name,
-            args,
-            prefix: '\0',
-        })
-    }
-    
-    pub fn args_raw(&self) -> String {
-        self.args.join(" ")
+    pub fn args_raw(&self) -> &str {
+        &self.args_raw
     }
     
     pub fn has_args(&self) -> bool {
@@ -110,75 +144,137 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_required_prefix() {
-        let cmd = Command::parse("/help test", PrefixMode::Required('/')).unwrap();
-        assert_eq!(cmd.name, "help");
-        assert_eq!(cmd.args, vec!["test"]);
-        assert_eq!(cmd.prefix, '/');
-        
-        assert!(Command::parse("help test", PrefixMode::Required('/')).is_none());
-    }
-
-    #[test]
-    fn test_optional_prefix() {
+    fn test_optional_prefix_echo() {
         // 带前缀
-        let cmd = Command::parse("/help test", PrefixMode::Optional('/')).unwrap();
-        assert_eq!(cmd.name, "help");
+        let cmd = Command::parse("/echo hello world", "echo", PrefixMode::Optional('/')).unwrap();
+        assert_eq!(cmd.name, "echo");
+        assert_eq!(cmd.args_raw, " hello world");
+        assert_eq!(cmd.args, vec!["hello", "world"]);
         assert_eq!(cmd.prefix, '/');
         
         // 不带前缀
-        let cmd = Command::parse("help test", PrefixMode::Optional('/')).unwrap();
-        assert_eq!(cmd.name, "help");
+        let cmd = Command::parse("echo hello world", "echo", PrefixMode::Optional('/')).unwrap();
+        assert_eq!(cmd.name, "echo");
+        assert_eq!(cmd.args_raw, " hello world");
+        assert_eq!(cmd.args, vec!["hello", "world"]);
         assert_eq!(cmd.prefix, '\0');
     }
 
     #[test]
-    fn test_no_prefix() {
-        let cmd = Command::parse("help test", PrefixMode::None).unwrap();
-        assert_eq!(cmd.name, "help");
-        assert_eq!(cmd.args, vec!["test"]);
-        assert!(!cmd.has_prefix());
+    fn test_no_spaces_between_cmd_and_args() {
+        // echo内容 -> "内容"
+        let cmd = Command::parse("echo内容", "echo", PrefixMode::Optional('/')).unwrap();
+        assert_eq!(cmd.args_raw, "内容");
+        assert_eq!(cmd.args, vec!["内容"]);
+        
+        // /echo内容
+        let cmd = Command::parse("/echo内容", "echo", PrefixMode::Optional('/')).unwrap();
+        assert_eq!(cmd.args_raw, "内容");
+        assert_eq!(cmd.args, vec!["内容"]);
     }
 
     #[test]
-    fn test_multiple_args() {
-        let cmd = Command::parse("/echo hello world 123", PrefixMode::Required('/')).unwrap();
-        assert_eq!(cmd.name, "echo");
-        assert_eq!(cmd.args, vec!["hello", "world", "123"]);
-        assert_eq!(cmd.args_raw(), "hello world 123");
-        assert_eq!(cmd.arg_at(0), Some(&"hello".to_string()));
-        assert_eq!(cmd.arg_at(2), Some(&"123".to_string()));
+    fn test_multiple_spaces() {
+        // echo{0-n个空格}内容
+        let cmd = Command::parse("echo    内容", "echo", PrefixMode::Optional('/')).unwrap();
+        assert_eq!(cmd.args_raw, "    内容");
+        assert_eq!(cmd.args, vec!["内容"]);
+        
+        // echo{0-n个空格}内容1{0-n个空格}内容2
+        let cmd = Command::parse("echo   内容1    内容2", "echo", PrefixMode::Optional('/')).unwrap();
+        assert_eq!(cmd.args_raw, "   内容1    内容2");
+        assert_eq!(cmd.args, vec!["内容1", "内容2"]);
     }
 
     #[test]
-    fn test_whitespace_handling() {
-        let cmd = Command::parse("  /help   test   ", PrefixMode::Required('/')).unwrap();
-        assert_eq!(cmd.name, "help");
-        assert_eq!(cmd.args, vec!["test"]);
-        assert_eq!(cmd.raw, "  /help   test   ");
+    fn test_mixed_without_spaces() {
+        // echo内容1内容2（没有空格，视为一个整体）
+        let cmd = Command::parse("echo内容1内容2", "echo", PrefixMode::Optional('/')).unwrap();
+        assert_eq!(cmd.args_raw, "内容1内容2");
+        assert_eq!(cmd.args, vec!["内容1内容2"]);
+        
+        // echo内容1 内容2（有空格，拆分成两个）
+        let cmd = Command::parse("echo内容1 内容2", "echo", PrefixMode::Optional('/')).unwrap();
+        assert_eq!(cmd.args_raw, "内容1 内容2");
+        assert_eq!(cmd.args, vec!["内容1", "内容2"]);
     }
 
     #[test]
-    fn test_empty_command() {
-        assert!(Command::parse("", PrefixMode::Required('/')).is_none());
-        assert!(Command::parse("   ", PrefixMode::Optional('/')).is_none());
-        assert!(Command::parse("/", PrefixMode::Required('/')).is_none());
-        assert!(Command::parse("/   ", PrefixMode::Required('/')).is_none());
+    fn test_command_boundary() {
+        assert!(Command::parse("echo123", "echo", PrefixMode::Optional('/')).is_some());
+        assert!(Command::parse("echo 123", "echo", PrefixMode::Optional('/')).is_some());
+        assert!(Command::parse("echo内容", "echo", PrefixMode::Optional('/')).is_some());
+        assert!(Command::parse("echoabc", "echo", PrefixMode::Optional('/')).is_some());
+        assert!(Command::parse("echo abc", "echo", PrefixMode::Optional('/')).is_some());
+    }
+
+    #[test]
+    fn test_required_prefix() {
+        let cmd = Command::parse("/echo test", "echo", PrefixMode::Required('/')).unwrap();
+        assert_eq!(cmd.args_raw, " test");
+        
+        // 没有前缀应该失败
+        assert!(Command::parse("echo test", "echo", PrefixMode::Required('/')).is_none());
+    }
+
+    #[test]
+    fn test_none_prefix() {
+        let cmd = Command::parse("echo test", "echo", PrefixMode::None).unwrap();
+        assert_eq!(cmd.args_raw, " test");
+        
+        // 带前缀应该失败
+        assert!(Command::parse("/echo test", "echo", PrefixMode::None).is_none());
+    }
+
+    #[test]
+    fn test_empty_args() {
+        let cmd = Command::parse("/echo", "echo", PrefixMode::Optional('/')).unwrap();
+        assert_eq!(cmd.args_raw, "");
+        assert!(cmd.args.is_empty());
+        assert!(!cmd.has_args());
+    }
+
+    #[test]
+    fn test_whitespace_preservation() {
+        let cmd = Command::parse("  /echo   hello   world  ", "echo", PrefixMode::Optional('/')).unwrap();
+        assert_eq!(cmd.raw, "  /echo   hello   world  ");
+        assert_eq!(cmd.args_raw, "   hello   world  ");  // 保留所有空格，包括尾随空格
+        assert_eq!(cmd.args, vec!["hello", "world"]);
+    }
+    
+    #[test]
+    fn test_first_arg() {
+        let cmd = Command::parse("/echo arg1 arg2", "echo", PrefixMode::Optional('/')).unwrap();
+        assert_eq!(cmd.arg_at(0), Some(&"arg1".to_string()));
+        assert_eq!(cmd.arg_at(1), Some(&"arg2".to_string()));
+        assert_eq!(cmd.arg_at(2), None);
     }
     
     #[test]
     fn test_raw_preservation() {
-        // 测试各种原始格式的保留
         let test_cases = vec![
-            "/cmd",
-            "  /cmd  ",
-            "/cmd arg1  arg2",
-            "  /cmd  arg1    arg2  ",
+            "/echo",
+            "  /echo  ",
+            "/echo arg1  arg2",
+            "  /echo  arg1    arg2  ",
         ];
         
         for input in test_cases {
-            let cmd = Command::parse(input, PrefixMode::Required('/')).unwrap();
+            let cmd = Command::parse(input, "echo", PrefixMode::Required('/')).unwrap();
             assert_eq!(cmd.raw, input);
         }
+    }
+    
+    #[test]
+    fn test_edge_cases() {
+        // 命令名后面直接跟内容，没有空格
+        let cmd = Command::parse("/echohello", "echo", PrefixMode::Optional('/')).unwrap();
+        assert_eq!(cmd.args_raw, "hello");
+        assert_eq!(cmd.args, vec!["hello"]);
+        
+        // 只有命令名
+        let cmd = Command::parse("/echo", "echo", PrefixMode::Optional('/')).unwrap();
+        assert_eq!(cmd.args_raw, "");
+        assert!(cmd.args.is_empty());
     }
 }
