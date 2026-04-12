@@ -6,9 +6,15 @@ pub mod command;
 pub struct Bot;
 
 impl Bot {
-    pub fn get_version() -> *const c_char {
-        unsafe{
-            luo9_version()
+    pub fn get_version() -> String {
+        unsafe {
+            let ptr = luo9_version();
+            if !ptr.is_null() {
+                let c_string = CString::from_raw(ptr as *mut i8);
+                c_string.into_string().unwrap_or_default()
+            } else {
+                String::new()
+            }
         }
     }
 
