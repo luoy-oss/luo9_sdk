@@ -1,9 +1,9 @@
 use libc::c_char;
 use std::ffi::CString;
 
-pub struct Nbot;
+pub struct Bot;
 
-impl Nbot {
+impl Bot {
     pub fn get_version() -> *const c_char {
         unsafe{
             luo9_version()
