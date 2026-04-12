@@ -1,6 +1,8 @@
 use libc::c_char;
 use std::ffi::CString;
 
+
+pub mod command;
 pub struct Bot;
 
 impl Bot {
