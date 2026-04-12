@@ -1,0 +1,19 @@
+[package]
+name = "luo9_sdk"
+version = "0.1.0-beta.1"
+authors = ["luoy-oss <2557657882@qq.com>"]
+edition = "2024"
+description = "rust SDK for developing plugins for Luo9 Bot"
+license = "GPL-3.0"
+repository = "https://github.com/luoy-oss/luo9_sdk"
+homepage = "https://www.drluo.top"
+documentation = "https://www.drluo.top/posts/luo9_sdk"
+readme = "README.md"
+keywords = ["bot", "luo9", "Nbot", "sdk", "plugin", "洛玖"]
+categories = ["api-bindings"]
+
+[dependencies]
+libc = "0.2"
+libloading = "0.9.0"   # 关键：运行时加载 DLL
+serde_json = "1.0"
+
