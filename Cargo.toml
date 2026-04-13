@@ -9,7 +9,7 @@ repository = "https://github.com/luoy-oss/luo9_sdk"
 homepage = "https://www.drluo.top"
 documentation = "https://www.drluo.top/posts/luo9_sdk"
 readme = "README.md"
-keywords = ["bot", "luo9", "sdk", "plugin", "洛玖"]
+keywords = ["bot", "luo9", "sdk", "plugin"]
 categories = ["api-bindings"]
 
 [dependencies]
