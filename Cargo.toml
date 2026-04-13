@@ -1,6 +1,6 @@
 [package]
 name = "luo9_sdk"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["luoy-oss <2557657882@qq.com>"]
 edition = "2024"
 description = "rust SDK for Luo9"
