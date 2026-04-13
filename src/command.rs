@@ -4,6 +4,7 @@ pub enum PrefixMode {
     None,                // 无前缀
 }
 
+#[derive(Debug)]
 pub struct Command {
     pub raw: String,        // 原始字符串 "/echo hello world"（保留原始格式）
     pub name: String,       // 命令名，如 "echo"
@@ -13,13 +14,6 @@ pub struct Command {
 }
 
 impl Command {
-    /// 解析命令，检查是否以指定命令名开头
-    /// 
-    /// # Examples
-    /// ```
-    /// let cmd = Command::parse("/echo hello world", "echo", PrefixMode::Optional('/')).unwrap();
-    /// assert_eq!(cmd.args_raw, " hello world");
-    /// ```
     pub fn parse(msg: &str, cmd_name: &str, mode: PrefixMode) -> Option<Self> {
         let raw = msg.to_string();
         let trimmed = raw.trim();
@@ -52,20 +46,18 @@ impl Command {
             }
         };
         
-        // 2. 检查是否以命令名开头
+        // 检查是否以命令名开头
         if !content.starts_with(cmd_name) {
             return None;
         }
         
-        // 3. 计算在原始 trimmed 字符串中，命令名结束的位置
+        //    计算在原始 trimmed 字符串中，命令名结束的位置
         //    需要考虑前缀和命令名前的空格
         let trimmed_parts: Vec<&str> = trimmed.splitn(2, |c: char| !c.is_whitespace()).collect();
         if trimmed_parts.is_empty() {
             return None;
         }
-        
-        // 找到命令名在原始 raw 中的位置
-        // 更简单的方法：直接在 raw 中查找
+
         let raw_trimmed_start = raw.find(trimmed).unwrap_or(0);
         
         // 计算前缀在 raw 中的长度
