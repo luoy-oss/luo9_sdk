@@ -1,6 +1,5 @@
 use libc::{c_char, c_int};
 use std::ffi::{CStr, CString};
-use std::ptr;
 
 #[repr(C)]
 pub struct CommandHandle {
