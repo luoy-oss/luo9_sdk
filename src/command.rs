@@ -23,7 +23,7 @@ impl Command {
         }
         
         // 1. 根据前缀模式，提取实际内容（去掉前缀）
-        let (content, actual_prefix, prefix_len_in_trimmed) = match mode {
+        let (content, actual_prefix, _prefix_len_in_trimmed) = match mode {
             PrefixMode::Required(p) => {
                 if !trimmed.starts_with(p) {
                     return None;
@@ -64,7 +64,7 @@ impl Command {
         let prefix_part_len = if actual_prefix != '\0' {
             // 在 trimmed 中，前缀在开头，但 raw 中可能有前导空格
             // 找到 trimmed 在 raw 中的位置，前缀就是从那里开始的
-            let trimmed_start_in_raw = raw.find(trimmed).unwrap_or(0);
+            // let trimmed_start_in_raw = raw.find(trimmed).unwrap_or(0);
             // 前缀字符在 trimmed 中的位置是 0
             // 所以在 raw 中，前缀的位置就是 trimmed_start_in_raw
             // 前缀长度就是实际前缀字符的长度
